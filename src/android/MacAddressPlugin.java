@@ -9,6 +9,10 @@ import org.json.JSONObject;
 
 import android.content.Context;
 import android.net.wifi.WifiManager;
+import java.net.NetworkInterface;
+import android.os.Build;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * The Class MacAddressPlugin.
@@ -24,7 +28,7 @@ public class MacAddressPlugin extends CordovaPlugin {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.apache.cordova.api.Plugin#execute(java.lang.String,
      * org.json.JSONArray, java.lang.String)
      */
@@ -32,9 +36,15 @@ public class MacAddressPlugin extends CordovaPlugin {
     public boolean execute(String action, JSONArray args,
             CallbackContext callbackContext) {
 
-        if (action.equals("getMacAddress")) {
+        int version = Build.VERSION.SDK_INT;
+        String macAddress;
 
-            String macAddress = this.getMacAddress();
+        if (action.equals("getMacAddress")) {
+            if(version >= 23) {
+                macAddress = this.getMacAddr();
+            } else {
+                macAddress = this.getMacAddress();
+            }
 
             if (macAddress != null) {
                 JSONObject JSONresult = new JSONObject();
@@ -61,7 +71,7 @@ public class MacAddressPlugin extends CordovaPlugin {
 
     /**
      * Gets the mac address.
-     * 
+     *
      * @return the mac address
      */
     private String getMacAddress() {
@@ -74,5 +84,32 @@ public class MacAddressPlugin extends CordovaPlugin {
         }
 
         return macAddress;
+    }
+
+    public static String getMacAddr() {
+        try {
+            String interfaceName = "wlan0";
+            List<NetworkInterface> interfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
+            for (NetworkInterface intf : interfaces) {
+                if (!intf.getName().equalsIgnoreCase(interfaceName)){
+                    continue;
+                }
+
+                byte[] mac = intf.getHardwareAddress();
+                if (mac==null){
+                    return "";
+                }
+
+                StringBuilder buf = new StringBuilder();
+                for (byte aMac : mac) {
+                    buf.append(String.format("%02X:", aMac));
+                }
+                if (buf.length()>0) {
+                    buf.deleteCharAt(buf.length() - 1);
+                }
+                return buf.toString();
+            }
+        } catch (Exception ex) { } // for now eat exceptions
+        return "";
     }
 }
